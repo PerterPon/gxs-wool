@@ -188,7 +188,10 @@ async function reapCoins(): Promise<void> {
 async function reapMineCoins(): Promise<void> {
 
     const now: number = Date.now();
-    for( let i = 0; i < mineCoins.length; i ++ ) {
+
+    const willMineCoins: Array<TMineCoin> = [];
+
+    for (let i = 0; i < mineCoins.length; i ++ ) {
         const mineCoin: TMineCoin = mineCoins[ i ];
         if ( now >= mineCoin.validTime ) {
             console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] getting mined coin: [${mineCoin.symbol}], amount: [${mineCoin.amount}]`);
@@ -199,16 +202,22 @@ async function reapMineCoins(): Promise<void> {
             if ( null === resData.message ) {
                 await store('mine', mineCoin.symbol, resData.data.drawAmount);
             } else {
-                throw new Error(resData.message);
+                willMineCoins.push( mineCoin );
+                throw new Error( resData.message );
             }
+        } else {
+            willMineCoins.push( mineCoin );
         }
     }
-
+    mineCoins = willMineCoins;
 }
 
 async function reapStealCoins(): Promise<void> {
     const now: number = Date.now();
-    for( let i = 0; i < canStealCoins.length; i ++ ) {
+    
+    const willStealCoins: Array<TCanStealCoin> = [];
+
+    for (let i = 0; i < canStealCoins.length; i ++ ) {
         const canStealCoin: TCanStealCoin = canStealCoins[ i ];
         if ( true === canStealCoin.canSteal || now >= canStealCoin.validDate ) {
             console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] stealing coin, now: [${ now }], valid: [${ canStealCoin.validDate }], cansteal: [${ canStealCoin.canSteal }] ...`.yellow);
@@ -219,10 +228,14 @@ async function reapStealCoins(): Promise<void> {
             if (null === resData.message) {
                 await store( 'steal', canStealCoin.symbol, resData.data.stealAmount );
             } else {
+                willStealCoins.push(canStealCoin);
                 throw new Error( resData.message );
             }
+        } else {
+            willStealCoins.push( canStealCoin );
         }
     }
+    canStealCoins = willStealCoins;
 }
 
 async function store(type: 'steal' | 'mine', symbol: string, amount: number): Promise<void> {
@@ -238,7 +251,7 @@ async function store(type: 'steal' | 'mine', symbol: string, amount: number): Pr
         fs.writeFileSync(stoneFile, JSON.stringify(store, <any>'', 2));
     } catch (e) { console.log(e.message.red); }
 
-} 
+}
 
 start();
 

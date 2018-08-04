@@ -29,7 +29,7 @@ test-cov: build-test
 
 dev: build-ts
 	cd $(DIRNAME)/build && \
-	NODE_PATH=$(BUILD_FOLDER) DEBUG="true" node src/index.js
+	NODE_PATH=$(BUILD_FOLDER) DEBUG="true" node src/index.js emxDSTJnbVN6UUs1am9nc0hhMzAzNjEyOTA5OjE2NjRJSDNvOXR3ckNwZ1A5a0V0Vmw5NDc1Nw== zlCI2gmSzQK5jogsHa303612909
 	@echo "dev start success!"
 
 start: build-ts

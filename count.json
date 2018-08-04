@@ -1,5 +1,8 @@
 {
-    "steal" : {},
-    "mine" : {},
-    "people" : []
+  "steal": {
+    "LUCIA": 0.0092,
+    "GXS": 0.00066
+  },
+  "mine": {},
+  "people": []
 }
