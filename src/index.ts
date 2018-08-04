@@ -72,7 +72,7 @@ async function landCoins(): Promise<void> {
             console.log( e.stack.red );
         }
 
-        await sleep( 10 * 1000 );
+        await sleep( 30 * 1000 );
     }
 }
 
