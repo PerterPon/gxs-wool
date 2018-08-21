@@ -69,10 +69,10 @@ async function landCoins(): Promise<void> {
                 canStealCoins = canStealCoins.concat( stealCoins );
             }
         } catch ( e ) {
-            console.log( e.stack.red );
+            console.log( e );
         }
 
-        await sleep( 30 * 1000 );
+        await sleep( 5 * 60 * 1000 );
     }
 }
 
@@ -141,10 +141,9 @@ async function landOftenListCoins(): Promise<Array<TListItem>> {
     }
 }
 
-
 async function listCanStealCoins(userId: string): Promise<Array<TCanStealCoin>> {
     
-    console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] getting can steal coins...`.yellow);
+    // console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] getting can steal coins...`.yellow);
     const url: string = `https://walletgateway.gxb.io/miner/steal/${userId}/mine/list`;
     const res: Response = await getPromise(<any>url, <any>headers);
     const resData: THttpResponse<Array<TCanStealCoin>> = JSON.parse(res.body);
@@ -180,7 +179,7 @@ async function reapCoins(): Promise<void> {
             await reapMineCoins();
             await reapStealCoins();
         } catch ( e ) {
-            console.log( e.stack.red );
+            console.log( e );
         }
     }
 }
@@ -249,7 +248,7 @@ async function store(type: 'steal' | 'mine', symbol: string, amount: number): Pr
         const nowCount: number = target[symbol] || 0;
         target[symbol] = nowCount + amount;
         fs.writeFileSync(stoneFile, JSON.stringify(store, <any>'', 2));
-    } catch (e) { console.log(e.message.red); }
+    } catch (e) { console.log( e ); }
 
 }
 
@@ -262,3 +261,16 @@ process.on('uncaughtException', (error: Error) => {
 process.on('unhandledRejection', ( reason: string ) => {
     console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] unhandledRejection, reason: [${ reason }]`.red);
 });
+
+
+async function liveCheck() {
+    while( true ) {
+
+        await sleep( 2 * 60 * 1000 );
+
+        console.log( `[${moment().format('YYYY-MM-DD HH:mm:ss')}] live check`.gray );
+
+    }
+}
+liveCheck();
+
