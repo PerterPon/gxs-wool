@@ -30,6 +30,10 @@ const headers: CoreOptions = {
     }
 };
 
+const DEFAULT_DISTANCE_TIME = 5 * 60 * 1000;
+const MIN_DISTANCE_TIME = 1.5 * 60 * 1000;
+let DISTANCE_TIME = DEFAULT_DISTANCE_TIME;
+
 const storeFilePath: string = path.join( __dirname, '../../count.json' );
 
 let mineCoins: Array<TMineCoin> = [];
@@ -72,7 +76,7 @@ async function landCoins(): Promise<void> {
             console.log( e );
         }
 
-        await sleep( 5 * 60 * 1000 );
+        await sleep( DISTANCE_TIME );
     }
 }
 
@@ -90,41 +94,71 @@ async function landMineCoins(): Promise<Array<TMineCoin>> {
     }
 }
 
-function calculateThresholdTimes(leftAmount: number): number {
-    const leftTimes: number = leftAmount / 8;
-    const lastTime: moment.Moment = moment();
-    lastTime.hours(23);
-    lastTime.minutes(59);
-    lastTime.seconds(59);
-    const leftTime: number = +lastTime - +moment();
-    const leftSeconds: number = Math.floor(leftTime / 1000);
-    const leftCycleTimes: number = Math.floor(leftSeconds / (3 * 6));
-    return Math.floor(leftCycleTimes / leftTimes);
-}
-
-let change: string = 'false';
-let emptyTimes: number = 0;
-let thresholdTimes: number = 40;
+let needChange: boolean = false;
 async function landStealListCoins(): Promise<Array<TListItem>> {
-    if (thresholdTimes <= emptyTimes) {
-        change = 'true'; 
-        console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] change list`);
-        emptyTimes = 0;
-    }
-    const url: string = `https://walletgateway.gxb.io/miner/steal/user/list/v2?change=${change}&hasLocation=true`;
-    change = 'false';
 
+    let changeFlag: string = 'false';
+    if ( true === needChange ) {
+        console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] change list`.yellow);
+        changeFlag = 'true';
+        needChange = false;
+    }
+
+    const url: string = `https://walletgateway.gxb.io/miner/steal/user/list/v2?change=${changeFlag}&hasLocation=true`;
+    
     const res: Response = await getPromise(url, headers);
     const resData: THttpResponse<{ leftAmount: number, list: Array<TListItem> }> = JSON.parse(res.body);
-
+    
     let data: Array<TListItem> = [];
-
+    
     if (null === resData.message) {
         const { leftAmount, list } = resData.data;
-        thresholdTimes = calculateThresholdTimes(leftAmount);
+        needChange = calculateNeedChange( leftAmount );
+        // thresholdTimes = calculateThresholdTimes(leftAmount);
         return list;
     } else {
         throw new Error(resData.message);
+    }
+}
+
+let emptyTimes: number = 0;
+function calculateNeedChange( leftAmount: number ): boolean {
+
+    const now: moment.Moment = moment();
+    const nowHour: number = now.hours();
+    if ( 0 < nowHour && 6 > nowHour ) {
+        if ( DISTANCE_TIME !== DEFAULT_DISTANCE_TIME ) {
+            console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] adjust distance time to default value: [${ DEFAULT_DISTANCE_TIME }]`.gray );
+            DISTANCE_TIME = DEFAULT_DISTANCE_TIME;
+        }
+        return false;
+    }
+
+    const leftChangeTimes: number = Math.floor( leftAmount / 8 );
+    const todayLastTime: moment.Moment = moment();
+    todayLastTime.hours( 23 );
+    todayLastTime.minutes( 59 );
+    todayLastTime.seconds( 59 );
+    const leftMilSeconds: number = +todayLastTime - +now + emptyTimes * DISTANCE_TIME;
+    const totalRoundTimes: number = Math.floor( leftMilSeconds / DISTANCE_TIME );
+    const distanceEmptyTime: number = Math.floor( totalRoundTimes / leftChangeTimes );
+
+    // 按照当前时间已经无法将今天的都刷新完，调整distance_time.
+    if ( 1 >= distanceEmptyTime ) {
+        DISTANCE_TIME = Math.floor( ( +now - +todayLastTime ) / leftChangeTimes );
+        if ( DISTANCE_TIME < MIN_DISTANCE_TIME ) {
+            DISTANCE_TIME = MIN_DISTANCE_TIME;
+        }
+        console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] not enough time! adjust distance time to: [${ DISTANCE_TIME }]`.red );
+        return true;
+    }
+
+    if ( emptyTimes >= distanceEmptyTime ) {
+        emptyTimes = 0;
+        return true;
+    } else {
+        emptyTimes ++;
+        return false;
     }
 }
 
