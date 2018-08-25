@@ -148,6 +148,8 @@ function calculateNeedChange( leftAmount: number ): boolean {
         DISTANCE_TIME = Math.floor( ( +todayLastTime - +now ) / leftChangeTimes );
         if ( DISTANCE_TIME < MIN_DISTANCE_TIME ) {
             DISTANCE_TIME = MIN_DISTANCE_TIME;
+        } else if ( DISTANCE_TIME > DEFAULT_DISTANCE_TIME ) {
+            DISTANCE_TIME = DEFAULT_DISTANCE_TIME;
         }
         console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] not enough time! adjust distance time to: [${ DISTANCE_TIME }]`.red );
         return true;
