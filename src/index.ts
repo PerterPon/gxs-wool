@@ -143,11 +143,9 @@ function calculateNeedChange( leftAmount: number ): boolean {
     const totalRoundTimes: number = Math.floor( leftMilSeconds / DISTANCE_TIME );
     const distanceEmptyTime: number = Math.floor( totalRoundTimes / leftChangeTimes );
 
-    console.log('distanceEmptyTime:', distanceEmptyTime );
     // 按照当前时间已经无法将今天的都刷新完，调整distance_time.
     if ( 1 >= distanceEmptyTime ) {
         DISTANCE_TIME = Math.floor( ( +todayLastTime - +now ) / leftChangeTimes );
-        console.log('DISTANCE_TIME:', DISTANCE_TIME);
         if ( DISTANCE_TIME < MIN_DISTANCE_TIME ) {
             DISTANCE_TIME = MIN_DISTANCE_TIME;
         }
@@ -155,7 +153,6 @@ function calculateNeedChange( leftAmount: number ): boolean {
         return true;
     }
 
-    console.log('emptyTimes:', emptyTimes);
     if ( emptyTimes >= distanceEmptyTime ) {
         emptyTimes = 0;
         return true;
