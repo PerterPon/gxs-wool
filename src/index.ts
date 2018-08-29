@@ -218,7 +218,7 @@ async function listCanStealCoins(userId: string): Promise<Array<TCanStealCoin>> 
 
 async function reapCoins(): Promise<void> {
     while( true ) {
-        await sleep( 0.5 * 1000 );
+        await sleep( 0.001 * 1000 );
         try {
             await reapMineCoins();
             await reapStealCoins();
