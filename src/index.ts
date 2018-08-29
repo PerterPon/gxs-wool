@@ -11,7 +11,7 @@ import { TListItem, THttpResponse, TCanStealCoin, TStealResult, TMineCoin } from
 
 const Authorization: string = process.argv[ 2 ];
 const UserId: string = process.argv[ 3 ];
-const noChange: string = process.argv[ 4 ];
+const noChange: string = process.argv[ 5 ];
 
 const getPromise: (uri: string, options: CoreOptions) => Promise<Response> = util.promisify<string, CoreOptions, Response>(request.get);
 const postPromise: (uri: string, options: CoreOptions) => Promise<Response> = util.promisify<string, CoreOptions, Response>(request.post);
@@ -34,7 +34,7 @@ const headers: CoreOptions = {
 const DEFAULT_DISTANCE_TIME = 5 * 60 * 1000;
 const MIN_DISTANCE_TIME = 1.5 * 60 * 1000;
 // unit: ms.
-const SERVER_PING = 40;
+const SERVER_PING = +process.argv[ 4 ] || 0;
 let DISTANCE_TIME = DEFAULT_DISTANCE_TIME;
 
 const storeFilePath: string = path.join( __dirname, '../../count.json' );
