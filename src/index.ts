@@ -11,6 +11,7 @@ import { TListItem, THttpResponse, TCanStealCoin, TStealResult, TMineCoin } from
 
 const Authorization: string = process.argv[ 2 ];
 const UserId: string = process.argv[ 3 ];
+const noChange: string = process.argv[ 4 ];
 
 const getPromise: (uri: string, options: CoreOptions) => Promise<Response> = util.promisify<string, CoreOptions, Response>(request.get);
 const postPromise: (uri: string, options: CoreOptions) => Promise<Response> = util.promisify<string, CoreOptions, Response>(request.post);
@@ -32,6 +33,8 @@ const headers: CoreOptions = {
 
 const DEFAULT_DISTANCE_TIME = 5 * 60 * 1000;
 const MIN_DISTANCE_TIME = 1.5 * 60 * 1000;
+// unit: ms.
+const SERVER_PING = 40;
 let DISTANCE_TIME = DEFAULT_DISTANCE_TIME;
 
 const storeFilePath: string = path.join( __dirname, '../../count.json' );
@@ -124,6 +127,11 @@ async function landStealListCoins(): Promise<Array<TListItem>> {
 let emptyTimes: number = 0;
 function calculateNeedChange( leftAmount: number ): boolean {
 
+    // 标注不改变。
+    if ( 'true' === noChange ) {
+        return false;
+    }
+
     const now: moment.Moment = moment();
     const nowHour: number = now.hours();
     if ( 0 < nowHour && 6 > nowHour ) {
@@ -210,7 +218,7 @@ async function listCanStealCoins(userId: string): Promise<Array<TCanStealCoin>> 
 
 async function reapCoins(): Promise<void> {
     while( true ) {
-        await sleep( 1 * 1000 );
+        await sleep( 0.5 * 1000 );
         try {
             await reapMineCoins();
             await reapStealCoins();
@@ -228,7 +236,7 @@ async function reapMineCoins(): Promise<void> {
 
     for (let i = 0; i < mineCoins.length; i ++ ) {
         const mineCoin: TMineCoin = mineCoins[ i ];
-        if ( now >= mineCoin.validTime ) {
+        if ( ( now - SERVER_PING ) >= mineCoin.validTime ) {
             console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] getting mined coin: [${mineCoin.symbol}], amount: [${mineCoin.amount}]`);
             const url: string = `https://walletgateway.gxb.io/miner/${UserId}/mine/${mineCoin.id}/v2`;
             const res: Response = await getPromise(url, headers);
@@ -252,18 +260,18 @@ async function reapStealCoins(): Promise<void> {
     
     const willStealCoins: Array<TCanStealCoin> = [];
 
-    for (let i = 0; i < canStealCoins.length; i ++ ) {
+    for ( let i = 0; i < canStealCoins.length; i ++ ) {
         const canStealCoin: TCanStealCoin = canStealCoins[ i ];
-        if ( true === canStealCoin.canSteal || now >= canStealCoin.validDate ) {
+        if ( true === canStealCoin.canSteal || ( now - SERVER_PING ) >= canStealCoin.validDate ) {
             console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] stealing coin, now: [${ now }], valid: [${ canStealCoin.validDate }], cansteal: [${ canStealCoin.canSteal }] ...`.yellow);
             const url: string = `https://walletgateway.gxb.io/miner/steal/${ canStealCoin.userId }/mine/${ canStealCoin.mineId }`;
             const res: Response = await postPromise( <any>url, <any>headers );
             const resData: THttpResponse<TStealResult> = JSON.parse( res.body );
 
-            if (null === resData.message) {
+            if ( null === resData.message ) {
                 await store( 'steal', canStealCoin.symbol, resData.data.stealAmount );
             } else {
-                willStealCoins.push(canStealCoin);
+                willStealCoins.push( canStealCoin );
                 throw new Error( resData.message );
             }
         } else {
