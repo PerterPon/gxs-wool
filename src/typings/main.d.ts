@@ -1,5 +1,4 @@
 
-
 declare module 'main-types' {
 
     export type TListItem = {
@@ -11,6 +10,7 @@ declare module 'main-types' {
         canSteal: boolean;
         countDown: any;
         stealCount: number;
+        history?: boolean;
     };
 
     export type THttpResponse<T> = {
@@ -39,6 +39,14 @@ declare module 'main-types' {
         validTime: number;
         symbol: string;
         amount: number;
+    };
+
+    export type THistoryStealList = {
+        symbol: string;
+        amount: number;
+        stealUserId: string;
+        stealNick: string;
+        stealDate: number;
     };
 
 }

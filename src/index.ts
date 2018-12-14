@@ -7,7 +7,7 @@ import * as path from 'path';
 import "colors";
 
 import { CoreOptions, Response } from 'request';
-import { TListItem, THttpResponse, TCanStealCoin, TStealResult, TMineCoin } from 'main-types';
+import { TListItem, THttpResponse, TCanStealCoin, TStealResult, TMineCoin, THistoryStealList } from 'main-types';
 
 const Authorization: string = process.argv[ 2 ];
 const UserId: string = process.argv[ 3 ];
@@ -36,6 +36,7 @@ const MIN_DISTANCE_TIME = 1.5 * 60 * 1000;
 // unit: ms.
 const SERVER_PING = +process.argv[ 4 ] || 0;
 let DISTANCE_TIME = DEFAULT_DISTANCE_TIME;
+const ABANDON_COIN = 'PPS';
 
 const storeFilePath: string = path.join( __dirname, '../../count.json' );
 
@@ -67,6 +68,8 @@ async function landCoins(): Promise<void> {
         try {
             mineCoins = await landMineCoins();
             let data: Array<TListItem> = await landStealListCoins();
+            const historyStealList: Array<TListItem> = await landAllHistorySteamMan();
+            data = data.concat( historyStealList );
             const oftenStealList: Array<TListItem> = await landOftenListCoins();
             data = data.concat( oftenStealList );
 
@@ -122,6 +125,43 @@ async function landStealListCoins(): Promise<Array<TListItem>> {
     } else {
         throw new Error(resData.message);
     }
+}
+
+/**
+ * 获取所有的历史访问的数据
+ */
+async function landAllHistorySteamMan(): Promise<Array<TListItem>> {
+    console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] getting history steal coins...`.yellow);
+    let data: Array<THistoryStealList> = [];
+
+    let page: number = 0;
+    while (true) {
+        const result: Array<THistoryStealList> = await landHistoryStealList(page++);
+        if (0 === result.length) {
+            break;
+        }
+        data = data.concat(result);
+    }
+    const resultList: Array<TListItem> = [];
+    for (let i = 0; i < data.length; i++) {
+        const item: THistoryStealList = data[i];
+        const listItem: TListItem = {
+            userId: item.stealUserId,
+            nickName: item.stealNick,
+            history: true
+        } as TListItem;
+    }
+    return resultList;
+}
+
+/**
+ * 获取历史访问的人
+ */
+async function landHistoryStealList(pageNo: number, size: number = 10): Promise<Array<THistoryStealList>> {
+    const url: string = `https://walletgateway.gxb.io/miner/steal/record/list?pageNo=${pageNo}&pageSize=${size}`;
+    const res: Response = await getPromise(url, headers);
+    const resData: THttpResponse<Array<THistoryStealList>> = JSON.parse(res.body);
+    return resData.data;
 }
 
 let emptyTimes: number = 0;
@@ -231,12 +271,11 @@ async function reapCoins(): Promise<void> {
 async function reapMineCoins(): Promise<void> {
 
     const now: number = Date.now();
-
     const willMineCoins: Array<TMineCoin> = [];
 
     for (let i = 0; i < mineCoins.length; i ++ ) {
         const mineCoin: TMineCoin = mineCoins[ i ];
-        if ( ( now - SERVER_PING ) >= mineCoin.validTime ) {
+        if ((now - SERVER_PING) >= mineCoin.validTime && ABANDON_COIN !== mineCoin.symbol ) {
             console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] getting mined coin: [${mineCoin.symbol}], amount: [${mineCoin.amount}]`);
             const url: string = `https://walletgateway.gxb.io/miner/${UserId}/mine/${mineCoin.id}/v2`;
             const res: Response = await getPromise(url, headers);
