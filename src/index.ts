@@ -150,6 +150,7 @@ async function landAllHistorySteamMan(): Promise<Array<TListItem>> {
             nickName: item.stealNick,
             history: true
         } as TListItem;
+        resultList.push(listItem);
     }
     return resultList;
 }
@@ -157,7 +158,7 @@ async function landAllHistorySteamMan(): Promise<Array<TListItem>> {
 /**
  * 获取历史访问的人
  */
-async function landHistoryStealList(pageNo: number, size: number = 10): Promise<Array<THistoryStealList>> {
+async function landHistoryStealList(pageNo: number, size: number = 30): Promise<Array<THistoryStealList>> {
     const url: string = `https://walletgateway.gxb.io/miner/steal/record/list?pageNo=${pageNo}&pageSize=${size}`;
     const res: Response = await getPromise(url, headers);
     const resData: THttpResponse<Array<THistoryStealList>> = JSON.parse(res.body);
@@ -302,16 +303,19 @@ async function reapStealCoins(): Promise<void> {
     for ( let i = 0; i < canStealCoins.length; i ++ ) {
         const canStealCoin: TCanStealCoin = canStealCoins[ i ];
         if ( true === canStealCoin.canSteal || ( now - SERVER_PING ) >= canStealCoin.validDate ) {
-            console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] stealing coin, now: [${ now }], valid: [${ canStealCoin.validDate }], cansteal: [${ canStealCoin.canSteal }] ...`.yellow);
+            console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] stealing coin from : [${canStealCoin.userId}], now: [${ now }], valid: [${ canStealCoin.validDate }], cansteal: [${ canStealCoin.canSteal }] ...`.yellow);
             const url: string = `https://walletgateway.gxb.io/miner/steal/${ canStealCoin.userId }/mine/${ canStealCoin.mineId }`;
-            const res: Response = await postPromise( <any>url, <any>headers );
+            let res: Response = {} as Response;
+            res = await postPromise( <any>url, <any>headers );
             const resData: THttpResponse<TStealResult> = JSON.parse( res.body );
 
             if ( null === resData.message ) {
                 await store( 'steal', canStealCoin.symbol, resData.data.stealAmount );
             } else {
                 willStealCoins.push( canStealCoin );
-                throw new Error( resData.message );
+                console.error(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] stealing coin from : [${canStealCoin.userId}] with error: [${resData.message}]`.red);
+                continue;
+                // throw new Error( resData.message );
             }
         } else {
             willStealCoins.push( canStealCoin );
