@@ -302,17 +302,22 @@ async function reapStealCoins(): Promise<void> {
 
     for ( let i = 0; i < canStealCoins.length; i ++ ) {
         const canStealCoin: TCanStealCoin = canStealCoins[ i ];
-        if ( true === canStealCoin.canSteal || ( now - SERVER_PING ) >= canStealCoin.validDate ) {
+        if ( true === canStealCoin.canSteal && ( now - SERVER_PING ) >= canStealCoin.validDate ) {
             console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] stealing coin from : [${canStealCoin.userId}], now: [${ now }], valid: [${ canStealCoin.validDate }], cansteal: [${ canStealCoin.canSteal }] ...`.yellow);
             const url: string = `https://walletgateway.gxb.io/miner/steal/${ canStealCoin.userId }/mine/${ canStealCoin.mineId }`;
             let res: Response = {} as Response;
-            res = await postPromise( <any>url, <any>headers );
+            try {
+                res = await postPromise( <any>url, <any>headers );
+            } catch(e) {
+                console.error(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] stealing coin from : [${canStealCoin.userId}] with request error: [${e.message}]`.red);
+                continue;
+            }
             const resData: THttpResponse<TStealResult> = JSON.parse( res.body );
 
             if ( null === resData.message ) {
                 await store( 'steal', canStealCoin.symbol, resData.data.stealAmount );
             } else {
-                willStealCoins.push( canStealCoin );
+                // willStealCoins.push( canStealCoin );
                 console.error(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] stealing coin from : [${canStealCoin.userId}] with error: [${resData.message}]`.red);
                 continue;
                 // throw new Error( resData.message );
