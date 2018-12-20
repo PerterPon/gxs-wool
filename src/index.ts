@@ -36,7 +36,6 @@ const MIN_DISTANCE_TIME = 1.5 * 60 * 1000;
 // unit: ms.
 const SERVER_PING = +process.argv[ 4 ] || 0;
 let DISTANCE_TIME = DEFAULT_DISTANCE_TIME;
-const ABANDON_COIN = 'PPS';
 
 const storeFilePath: string = path.join( __dirname, '../../count.json' );
 
@@ -276,7 +275,7 @@ async function reapMineCoins(): Promise<void> {
 
     for (let i = 0; i < mineCoins.length; i ++ ) {
         const mineCoin: TMineCoin = mineCoins[ i ];
-        if ((now - SERVER_PING) >= mineCoin.validTime && ABANDON_COIN !== mineCoin.symbol ) {
+        if ((now - SERVER_PING) >= mineCoin.validTime) {
             console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] getting mined coin: [${mineCoin.symbol}], amount: [${mineCoin.amount}]`);
             const url: string = `https://walletgateway.gxb.io/miner/${UserId}/mine/${mineCoin.id}/v2`;
             const res: Response = await getPromise(url, headers);
