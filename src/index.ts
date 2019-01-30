@@ -27,7 +27,7 @@ const headers: CoreOptions = {
         "Accept": "application/json, text/plain, */*",
         "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 11_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E302 (5880463872)",
         "Referer": "https://walletgateway.gxb.io/",
-        "Accept-Language": "zh-CN"
+        "Accept-Language": "zh-CN",
     }
 };
 
@@ -36,6 +36,9 @@ const MIN_DISTANCE_TIME = 1.5 * 60 * 1000;
 // unit: ms.
 const SERVER_PING = +process.argv[ 4 ] || 0;
 let DISTANCE_TIME = DEFAULT_DISTANCE_TIME;
+
+/** 每日阅读算力是否领取 */
+let dailyReaded: boolean = false;
 
 const storeFilePath: string = path.join( __dirname, '../../count.json' );
 
@@ -55,8 +58,36 @@ function getDisplayTime(): string {
 }
 
 async function start(): Promise<void> {
+    landDailyRead();
     landCoins();
     reapCoins();
+}
+
+async function landDailyRead(): Promise<void> {
+    while (true) {
+        await sleep( 60 * 60 * 1000 );
+        const now: moment.Moment = moment();
+        // 每天早上10点和11点检查一次
+        if (10 === now.hours() || 11 === now.hours() ) {
+            await dailyRead();
+        }
+    }
+}
+
+/**
+ * 每日阅读算力
+ */
+async function dailyRead(): Promise<void> {
+    console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] getting daily read calculate ...`.yellow);
+    const url: string = `https://walletgateway.gxb.io/community/mission/read/complete?token=vGkkMcMrzmdejNXNWWhgbTbZWakRBUOK`;
+    const res: Response = await getPromise(url, headers);
+    const resData: THttpResponse<null> = JSON.parse(res.body);
+    if (true === resData.success) {
+        console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] get daily read calculate success ...`.green);
+        dailyReaded = false;
+    } else {
+        console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss')}] get daily read calculate with error ...`.red);
+    }
 }
 
 async function landCoins(): Promise<void> {
@@ -110,7 +141,8 @@ async function landStealListCoins(): Promise<Array<TListItem>> {
     }
 
     const url: string = `https://walletgateway.gxb.io/miner/steal/user/list/v2?change=${changeFlag}&hasLocation=true`;
-    
+
+
     const res: Response = await getPromise(url, headers);
     const resData: THttpResponse<{ leftAmount: number, list: Array<TListItem> }> = JSON.parse(res.body);
     
