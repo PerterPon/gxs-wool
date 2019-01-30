@@ -16,6 +16,7 @@ declare module 'main-types' {
     export type THttpResponse<T> = {
         message: string;
         data: T;
+        success?: boolean;
     };
 
     export type TCanStealCoin = {
